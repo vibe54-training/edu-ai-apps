@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>보건 활동지 도우미</title>
+<style>
+:root{--c:#2a7f62;--bg:#f4f8f6;--bd:#cfdcd6}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Malgun Gothic",sans-serif;background:var(--bg);color:#222}
+header{background:var(--c);color:#fff;padding:12px 20px}
+header h1{margin:0;font-size:20px}
+nav{display:flex;gap:4px;padding:8px 20px 0;background:#e3eee9;flex-wrap:wrap}
+nav button{border:0;padding:10px 16px;background:#cfe0d9;cursor:pointer;border-radius:8px 8px 0 0;font-size:15px}
+nav button.on{background:#fff;font-weight:bold;color:var(--c)}
+main{padding:16px 20px;max-width:1100px;margin:auto}
+section{display:none;background:#fff;border:1px solid var(--bd);border-radius:8px;padding:16px}
+section.on{display:block}
+label{display:inline-block;margin:4px 12px 4px 0}
+input,select,textarea{font:inherit;padding:5px;border:1px solid #aab;border-radius:5px}
+textarea{width:100%}
+button.b{background:var(--c);color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:14px;margin:4px 4px 4px 0}
+button.b.g{background:#6b7b75}
+button.b.r{background:#b23b3b}
+.row{margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{border:1px solid var(--bd);padding:6px;vertical-align:top}
+th{background:#eef5f2}
+.tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:12px;color:#fff}
+.d1{background:#4a90c2}.d2{background:#e0a030}.d3{background:#c0504d}
+.card{border:1px solid var(--bd);border-radius:8px;padding:10px;margin:8px 0}
+.muted{color:#667;font-size:13px}
+.sum{background:#eef5f2;padding:8px 12px;border-radius:6px;margin:8px 0}
+#paper{display:none}
+.paper{font-family:"Malgun Gothic",serif;font-size:13pt;line-height:1.55}
+.paper h2{text-align:center;margin:0 0 6px}
+.paper .hd{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:12px}
+.paper .q{margin:0 0 14px;page-break-inside:avoid;white-space:pre-line}
+.paper .ch{margin-left:18px}
+.paper .pb{page-break-before:always}
+.paper .line{border-bottom:1px solid #999;height:26px}
+@media print{
+ header,nav,main{display:none!important}
+ #paper{display:block!important}
+ body{background:#fff}
+}
+</style>
+</head>
+<body>
+<header><h1>🩺 보건 활동지 도우미 <span style="font-size:13px;font-weight:normal">(문항은행 · 난이도 균형 · 모둠활동 · 준비물)</span></h1></header>
+<nav id="tabs"></nav>
+<main>
+
+<section id="t-make">
+ <h3>① 활동지 만들기</h3>
+ <div class="row"><b>단원 선택</b> <span id="mk-units"></span></div>
+ <div class="row">
+  <label>총 문항 수 <input id="mk-n" type="number" value="10" min="1" max="50" style="width:60px"></label>
+  <label>활동지 제목 <input id="mk-title" value="보건 활동지" style="width:200px"></label>
+ </div>
+ <div class="row"><b>난이도 비율</b> (모든 단원에 똑같이 적용되어 단원 간 난이도가 맞춰집니다)<br>
+  <label><span class="tag d1">하</span> <input id="mk-r1" type="number" value="3" min="0" style="width:55px"></label>
+  <label><span class="tag d2">중</span> <input id="mk-r2" type="number" value="5" min="0" style="width:55px"></label>
+  <label><span class="tag d3">상</span> <input id="mk-r3" type="number" value="2" min="0" style="width:55px"></label>
+ </div>
+ <div class="row"><b>유형</b> <span id="mk-types"></span></div>
+ <button class="b" onclick="makeWs()">활동지 생성</button>
+ <button class="b g" onclick="makeWs()">다시 섞기</button>
+ <button class="b" onclick="printWs()">🖨 인쇄 (활동지 + 정답지)</button>
+ <div id="mk-sum"></div>
+ <div id="mk-out"></div>
+</section>
+
+<section id="t-bank">
+ <h3>② 문항 은행</h3>
+ <div class="row">
+  <label>단원 필터 <select id="bk-f" onchange="renderBank()"></select></label>
+  <button class="b" onclick="editQ()">+ 문항 추가</button>
+  <button class="b g" onclick="exportData()">백업 내보내기</button>
+  <button class="b g" onclick="document.getElementById('imp').click()">백업 불러오기</button>
+  <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">
+ </div>
+ <div class="muted" id="bk-stat"></div>
+ <div id="bk-form"></div>
+ <table id="bk-tbl"></table>
+</section>
+
+<section id="t-gen">
+ <h3>③ 용어로 문항 자동 만들기</h3>
+ <p class="muted">한 줄에 <b>용어 | 설명</b> 형식으로 입력하면 단답형·객관식·OX 문항을 자동으로 만들어 문항은행에 넣습니다. (용어가 4개 이상이어야 객관식이 만들어집니다)</p>
+ <div class="row">
+  <label>단원 <input id="gn-unit" list="unitlist" placeholder="예: 응급처치"></label>
+  <label>난이도 <select id="gn-d"><option value="1">하</option><option value="2" selected>중</option><option value="3">상</option></select></label>
+ </div>
+ <textarea id="gn-in" rows="7" placeholder="심폐소생술 | 심장이 멎었을 때 가슴압박과 인공호흡으로 혈액순환을 돕는 응급처치&#10;AED | 자동심장충격기&#10;..."></textarea>
+ <div class="row">
+  <label><input type="checkbox" class="gn-t" value="short" checked> 단답형(설명→용어)</label>
+  <label><input type="checkbox" class="gn-t" value="mc" checked> 객관식</label>
+  <label><input type="checkbox" class="gn-t" value="ox" checked> OX</label>
+  <button class="b" onclick="genQ()">문항 생성</button>
+ </div>
+ <div id="gn-out" class="muted"></div>
+ <datalist id="unitlist"></datalist>
+</section>
+
+<section id="t-act">
+ <h3>④ 모둠활동 아이디어 · 차시별 준비물</h3>
+ <div class="row">
+  <label>단원 <select id="ac-f" onchange="renderAct()"></select></label>
+  <button class="b" onclick="editAct()">+ 활동 추가</button>
+ </div>
+ <div id="ac-form"></div>
+ <div id="ac-list"></div>
+ <hr>
+ <h4>차시 계획 (활동을 담으면 준비물이 자동으로 합쳐집니다)</h4>
+ <div class="row">
+  <label>차시 이름 <input id="ls-name" placeholder="예: 3-2반 5/12 응급처치 2차시"></label>
+  <label>모둠 수 <input id="ls-g" type="number" value="6" min="1" style="width:55px"></label>
+  <button class="b" onclick="addLesson()">차시 만들기</button>
+ </div>
+ <div id="ls-list"></div>
+</section>
+
+</main>
+
+<div id="paper" class="paper"></div>
+
+<script>
+const TYPES={mc:"객관식",ox:"OX",short:"단답형",essay:"서술형"};
+const DIFF={1:"하",2:"중",3:"상"};
+const KEY="healthWsV1";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let uid=()=>Math.random().toString(36).slice(2,9);
+
+function seed(){
+ const Q=(unit,type,diff,text,choices,answer,expl="")=>({id:uid(),unit,type,diff,text,choices:choices||[],answer,expl});
+ return {
+ q:[
+  Q("응급처치","ox",1,"심정지 환자를 발견하면 가장 먼저 119에 신고하고 주변에 도움을 요청한다.",[],"O"),
+  Q("응급처치","short",1,"심장이 멈췄을 때 심장충격을 주어 정상 리듬으로 되돌리는 기계의 이름(영문 약자)은?",[],"AED","자동심장충격기"),
+  Q("응급처치","mc",2,"성인 심폐소생술에서 가슴압박의 올바른 속도는?",["분당 40~60회","분당 60~80회","분당 100~120회","분당 150~170회"],"3","5cm 깊이, 분당 100~120회"),
+  Q("응급처치","mc",2,"기도가 이물질로 막힌 의식 있는 성인에게 시행하는 응급처치는?",["하임리히법","인공호흡","지혈대 적용","냉찜질"],"1"),
+  Q("응급처치","ox",2,"가슴압박은 가슴뼈(흉골) 아래쪽 절반 부위를 약 5cm 깊이로 누른다.",[],"O"),
+  Q("응급처치","essay",3,"심정지 목격 시 '확인-신고-압박-AED' 순서로 해야 할 행동을 단계별로 서술하시오.",[],"반응·호흡 확인 → 119 신고 및 AED 요청 → 가슴압박 30회+인공호흡 2회 → AED 도착 시 패드 부착 및 안내에 따름"),
+  Q("응급처치","mc",3,"다음 중 심폐소생술을 중단해도 되는 경우로 옳지 않은 것은?",["환자가 움직이며 숨을 쉴 때","구급대원이 도착해 인계할 때","팔이 아파서 잠시 쉬고 싶을 때","AED가 분석을 지시할 때"],"3","중단 없이 교대하여 지속"),
+  Q("감염병 예방","ox",1,"비누로 30초 이상 손을 씻으면 감염병 예방에 도움이 된다.",[],"O"),
+  Q("감염병 예방","short",1,"기침할 때 비말 전파를 막기 위해 옷소매로 입과 코를 가리는 예절을 무엇이라 하는가?",[],"기침 예절"),
+  Q("감염병 예방","mc",2,"다음 중 공기(비말)로 전파되는 감염병은?",["독감(인플루엔자)","파상풍","말라리아","일본뇌염"],"1"),
+  Q("감염병 예방","mc",2,"예방접종의 원리로 가장 알맞은 것은?",["약한 병원체나 항원을 넣어 면역을 미리 만든다","항생제로 세균을 없앤다","체온을 높여 병원체를 죽인다","피부 장벽을 두껍게 한다"],"1"),
+  Q("감염병 예방","ox",2,"항생제는 바이러스 감염병에도 효과가 있어 감기에 항상 먹어야 한다.",[],"X","항생제는 세균에 효과"),
+  Q("감염병 예방","essay",3,"집단면역의 개념과 예방접종률이 중요한 이유를 서술하시오.",[],"인구 대부분이 면역을 가지면 면역이 없는 사람도 간접적으로 보호됨. 접종률이 낮으면 유행 위험 증가"),
+  Q("감염병 예방","mc",3,"감염병이 발생하기 위한 3요소(감염 경로)에 해당하지 않는 것은?",["병원체","전파 경로","감수성 있는 숙주","예방접종 기록"],"4"),
+  Q("약물과 중독","ox",1,"의사의 처방 없이 다른 사람의 약을 먹어도 비슷한 증상이면 괜찮다.",[],"X"),
+  Q("약물과 중독","short",1,"약물을 원래 사용 목적 이외로 쓰거나 용량·용법을 어기는 것을 무엇이라 하는가?",[],"약물 남용"),
+  Q("약물과 중독","mc",2,"약물 오남용 예방 방법으로 옳은 것은?",["복용 전 설명서와 유효기간을 확인한다","증상이 나아지면 남은 약을 보관해 두고 다음에 먹는다","친구에게 약을 나누어 준다","용량을 늘려 빨리 낫게 한다"],"1"),
+  Q("약물과 중독","mc",2,"스마트폰 과의존의 특징으로 알맞은 것은?",["사용 조절이 어렵고 일상생활에 지장이 생긴다","학업 성취가 반드시 높아진다","신체 변화가 전혀 없다","대인관계가 항상 좋아진다"],"1"),
+  Q("약물과 중독","essay",3,"친구가 흡연이나 약물을 권유할 때 거절하는 방법을 두 가지 이상 서술하시오.",[],"분명하게 '싫어' 말하기, 이유 대기, 자리 피하기, 대안 제시, 믿을 만한 어른에게 도움 요청"),
+  Q("약물과 중독","mc",3,"담배 연기 속 유해 물질과 그 영향이 바르게 짝지어진 것은?",["니코틴 - 의존성","일산화탄소 - 혈액 산소 운반 증가","타르 - 혈압 강하","벤젠 - 비타민 합성"],"1"),
+  Q("스트레스와 정신건강","ox",1,"스트레스는 항상 건강에 해롭기만 하다.",[],"X","적당한 스트레스는 동기부여가 됨"),
+  Q("스트레스와 정신건강","short",1,"스트레스를 일으키는 외부·내부 자극을 무엇이라 하는가?",[],"스트레스 요인(스트레서)"),
+  Q("스트레스와 정신건강","mc",2,"스트레스 대처 방법 중 건강한 방법은?",["규칙적 운동과 충분한 수면","폭식·폭음","타인에게 화풀이","문제를 계속 회피"],"1"),
+  Q("스트레스와 정신건강","mc",2,"마음이 힘들 때 도움을 받을 수 있는 청소년 상담전화 번호는?",["1388","112","1577","1330"],"1"),
+  Q("스트레스와 정신건강","mc",3,"자신의 감정을 표현하는 '나-전달법'에 해당하는 말은?",["네가 늦으면 나는 걱정되고 속상해","너 때문에 짜증나","너는 항상 늦잖아","네가 알아서 해"],"1"),
+  Q("스트레스와 정신건강","essay",3,"자신의 스트레스 요인 한 가지를 쓰고, 이를 건강하게 해소할 계획을 서술하시오.",[],"(예시) 시험 부담 → 계획표 작성, 하루 20분 걷기, 친구·상담교사와 대화")
+ ],
+ a:[
+  {id:uid(),unit:"응급처치",name:"인형으로 CPR 릴레이",time:15,desc:"모둠별 CPR 실습 인형(또는 쿠션)으로 역할(압박·호흡·AED·신고)을 돌아가며 수행하고 동료 평가표 작성.",mat:["CPR 실습 인형","AED 트레이너","동료 평가표","메트로놈(앱)"]},
+  {id:uid(),unit:"응급처치",name:"응급상황 역할극 카드",time:20,desc:"상황 카드(기도폐쇄, 화상, 출혈)를 뽑아 올바른 대처를 연기하고 발표.",mat:["상황 카드","붕대·삼각건","모둠 활동지"]},
+  {id:uid(),unit:"감염병 예방",name:"형광 세균 손씻기 실험",time:15,desc:"형광 로션을 바르고 손 씻기 전후를 자외선 램프로 비교.",mat:["형광 손씻기 로션","자외선 램프","비누","종이타월"]},
+  {id:uid(),unit:"감염병 예방",name:"감염 확산 시뮬레이션",time:15,desc:"학생 카드를 교환하며 전파 경로를 추적해 보고, 예방 행동이 확산을 막는 과정을 토론.",mat:["카드(감염/비감염)","기록지"]},
+  {id:uid(),unit:"약물과 중독",name:"거절 기술 역할극",time:20,desc:"권유 상황에서 거절 대본을 만들어 시연하고 가장 효과적인 방법 투표.",mat:["상황 카드","대본 활동지","투표 스티커"]},
+  {id:uid(),unit:"약물과 중독",name:"약 설명서 읽기 탐정",time:15,desc:"모의 약 설명서에서 용법·주의사항·유효기간을 찾아 퀴즈 풀기.",mat:["모의 약 설명서","탐정 활동지","필기구"]},
+  {id:uid(),unit:"스트레스와 정신건강",name:"스트레스 지도 그리기",time:15,desc:"모둠이 전지에 스트레스 요인과 해소 방법을 마인드맵으로 정리.",mat:["전지","색 마커","포스트잇"]},
+  {id:uid(),unit:"스트레스와 정신건강",name:"호흡·이완 체험",time:10,desc:"복식호흡과 근육 이완을 함께 해 보고 느낌 나누기.",mat:["요가매트(선택)","안내 음원","스피커"]}
+ ],
+ lessons:[]};
+}
+
+let S=load();
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.q)return s}catch(e){}return seed()}
+function save(){localStorage.setItem(KEY,JSON.stringify(S))}
+const units=()=>[...new Set([...S.q.map(x=>x.unit),...S.a.map(x=>x.unit)])];
+
+/* tabs */
+const TABS=[["make","활동지 만들기"],["bank","문항 은행"],["gen","용어로 자동 생성"],["act","모둠활동·준비물"]];
+function show(id){
+ TABS.forEach(([k])=>$("t-"+k).classList.toggle("on",k===id));
+ [...$("tabs").children].forEach((b,i)=>b.classList.toggle("on",TABS[i][0]===id));
+}
+$("tabs").innerHTML=TABS.map(([k,n])=>`<button onclick="show('${k}')">${n}</button>`).join("");
+
+function refreshAll(){
+ const us=units();
+ $("mk-units").innerHTML=us.map(u=>`<label><input type="checkbox" class="mk-u" value="${esc(u)}" checked> ${esc(u)} (${S.q.filter(q=>q.unit===u).length})</label>`).join("");
+ $("mk-types").innerHTML=Object.entries(TYPES).map(([k,n])=>`<label><input type="checkbox" class="mk-t" value="${k}" checked> ${n}</label>`).join("");
+ const opt='<option value="">전체</option>'+us.map(u=>`<option>${esc(u)}</option>`).join("");
+ const cur1=$("bk-f").value,cur2=$("ac-f").value;
+ $("bk-f").innerHTML=opt;$("ac-f").innerHTML=opt;
+ $("bk-f").value=cur1;$("ac-f").value=cur2;
+ $("unitlist").innerHTML=us.map(u=>`<option value="${esc(u)}">`).join("");
+ renderBank();renderAct();renderLessons();
+}
+
+/* worksheet generation */
+let WS=null;
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+// 비율에 맞춰 개수를 정수로 배분 (최대잉여법)
+function split(n,w){
+ const t=w.reduce((a,b)=>a+b,0);if(!t)return w.map(()=>0);
+ const raw=w.map(x=>n*x/t),base=raw.map(Math.floor);
+ let left=n-base.reduce((a,b)=>a+b,0);
+ raw.map((r,i)=>[r-base[i],i]).sort((a,b)=>b[0]-a[0]).forEach(([_,i])=>{if(left>0&&w[i]>0){base[i]++;left--}});
+ return base;
+}
+function makeWs(){
+ const us=[...document.querySelectorAll(".mk-u:checked")].map(x=>x.value);
+ const ts=[...document.querySelectorAll(".mk-t:checked")].map(x=>x.value);
+ const n=+$("mk-n").value||10,w=[1,2,3].map(i=>+$("mk-r"+i).value||0);
+ if(!us.length||!ts.length){alert("단원과 유형을 선택하세요.");return}
+ const perUnit=split(n,us.map(()=>1));
+ let picked=[],warn=[];
+ us.forEach((u,ui)=>{
+  const need=split(perUnit[ui],w);
+  let pool=S.q.filter(q=>q.unit===u&&ts.includes(q.type));
+  let got=[];
+  [1,2,3].forEach((d,di)=>{
+   const c=shuffle(pool.filter(q=>q.diff===d&&!got.includes(q))).slice(0,need[di]);
+   got.push(...c);
+   if(c.length<need[di])warn.push(`${u} ${DIFF[d]} 난이도 ${need[di]-c.length}문항 부족`);
+  });
+  // 부족분은 다른 난이도에서 보충
+  const lack=perUnit[ui]-got.length;
+  if(lack>0)got.push(...shuffle(pool.filter(q=>!got.includes(q))).slice(0,lack));
+  picked.push(...got);
+ });
+ // 난이도 오름차순, 같은 난이도 안에서는 섞기
+ picked=[1,2,3].flatMap(d=>shuffle(picked.filter(q=>q.diff===d)));
+ WS={title:$("mk-title").value,qs:picked.map(q=>({...q,order:q.type==="mc"?shuffle(q.choices.map((_,i)=>i)):null}))};
+ renderWs(warn);
+}
+function qHtml(q,i,withAns){
+ let h=`<div class="q"><b>${i+1}.</b> ${esc(q.text)} <small>[${DIFF[q.diff]}]</small>`;
+ if(q.type==="mc")h+=q.order.map((o,k)=>`<div class="ch">${"①②③④⑤"[k]} ${esc(q.choices[o])}</div>`).join("");
+ else if(q.type==="ox")h+=`<div class="ch">( &nbsp; )</div>`;
+ else if(q.type==="short")h+=`<div class="ch">답: ______________________</div>`;
+ else h+=`<div class="line"></div><div class="line"></div><div class="line"></div>`;
+ if(withAns){
+  const a=q.type==="mc"?"①②③④⑤"[q.order.indexOf(+q.answer-1)]+" "+q.choices[+q.answer-1]:q.answer;
+  h+=`<div class="ch" style="color:#b00">정답: ${esc(a)} ${q.expl?`<small>(${esc(q.expl)})</small>`:""}</div>`;
+ }
+ return h+"</div>";
+}
+function renderWs(warn=[]){
+ const c=[0,0,0];WS.qs.forEach(q=>c[q.diff-1]++);
+ const byU={};WS.qs.forEach(q=>{byU[q.unit]=byU[q.unit]||[0,0,0];byU[q.unit][q.diff-1]++});
+ $("mk-sum").innerHTML=`<div class="sum">총 ${WS.qs.length}문항 · 하 ${c[0]} / 중 ${c[1]} / 상 ${c[2]}<br>`+
+  Object.entries(byU).map(([u,v])=>`${esc(u)}: 하 ${v[0]} 중 ${v[1]} 상 ${v[2]}`).join("<br>")+
+  (warn.length?`<br><b style="color:#b23b3b">⚠ ${warn.map(esc).join(", ")} → 문항을 더 추가하세요(다른 난이도로 보충됨)</b>`:"")+`</div>`;
+ $("mk-out").innerHTML=`<div class="card paper">${WS.qs.map((q,i)=>qHtml(q,i,false)).join("")}</div>`;
+}
+function printWs(){
+ if(!WS){makeWs();if(!WS)return}
+ const head=t=>`<div class="hd"><span>${esc(WS.title)} ${t}</span><span>학년 반 번 이름: ____________</span></div>`;
+ $("paper").innerHTML=`<h2>${esc(WS.title)}</h2>${head("")}${WS.qs.map((q,i)=>qHtml(q,i,false)).join("")}
+  <div class="pb"><h2>정답 및 해설</h2>${head("(교사용)")}${WS.qs.map((q,i)=>qHtml(q,i,true)).join("")}</div>`;
+ window.print();
+}
+
+/* bank */
+function renderBank(){
+ const f=$("bk-f").value;
+ const list=S.q.filter(q=>!f||q.unit===f);
+ $("bk-stat").textContent=`전체 ${S.q.length}문항 · 표시 ${list.length}문항 (브라우저에 자동 저장됩니다. 정기적으로 백업을 내보내세요)`;
+ $("bk-tbl").innerHTML="<tr><th>단원</th><th>유형</th><th>난이도</th><th>문항 / 정답</th><th></th></tr>"+list.map(q=>
+  `<tr><td>${esc(q.unit)}</td><td>${TYPES[q.type]}</td><td><span class="tag d${q.diff}">${DIFF[q.diff]}</span></td>
+  <td>${esc(q.text)}${q.type==="mc"?"<br><small>"+q.choices.map((c,i)=>`${i+1}) ${esc(c)}`).join(" &nbsp; ")+"</small>":""}<br><small style="color:#2a7f62">정답: ${esc(q.answer)}</small></td>
+  <td><button class="b g" onclick="editQ('${q.id}')">수정</button><button class="b r" onclick="delQ('${q.id}')">삭제</button></td></tr>`).join("");
+}
+function editQ(id){
+ const q=S.q.find(x=>x.id===id)||{unit:$("bk-f").value||"",type:"mc",diff:2,text:"",choices:["","","",""],answer:"1",expl:""};
+ const ch=[...q.choices];while(ch.length<4)ch.push("");
+ $("bk-form").innerHTML=`<div class="card"><input type="hidden" id="e-id" value="${id||""}">
+ <label>단원 <input id="e-unit" list="unitlist" value="${esc(q.unit)}"></label>
+ <label>유형 <select id="e-type" onchange="toggleMc()">${Object.entries(TYPES).map(([k,n])=>`<option value="${k}" ${k===q.type?"selected":""}>${n}</option>`).join("")}</select></label>
+ <label>난이도 <select id="e-diff">${[1,2,3].map(d=>`<option value="${d}" ${d===q.diff?"selected":""}>${DIFF[d]}</option>`).join("")}</select></label>
+ <textarea id="e-text" rows="2" placeholder="문항">${esc(q.text)}</textarea>
+ <div id="e-mc">${ch.map((c,i)=>`<div>${i+1}) <input class="e-ch" value="${esc(c)}" style="width:80%"></div>`).join("")}</div>
+ <label>정답 <input id="e-ans" value="${esc(q.answer)}" placeholder="객관식은 번호, OX는 O/X"></label>
+ <label>해설 <input id="e-exp" value="${esc(q.expl)}" style="width:300px"></label><br>
+ <button class="b" onclick="saveQ()">저장</button><button class="b g" onclick="$('bk-form').innerHTML=''">취소</button></div>`;
+ toggleMc();
+}
+function toggleMc(){$("e-mc").style.display=$("e-type").value==="mc"?"block":"none"}
+function saveQ(){
+ const type=$("e-type").value;
+ const q={id:$("e-id").value||uid(),unit:$("e-unit").value.trim(),type,diff:+$("e-diff").value,text:$("e-text").value.trim(),
+  choices:type==="mc"?[...document.querySelectorAll(".e-ch")].map(x=>x.value.trim()).filter(Boolean):[],
+  answer:$("e-ans").value.trim(),expl:$("e-exp").value.trim()};
+ if(!q.unit||!q.text||!q.answer){alert("단원, 문항, 정답은 필수입니다.");return}
+ if(type==="ox")q.answer=q.answer.toUpperCase()==="X"?"X":"O";
+ if(type==="mc"&&!(q.choices.length>=2&&+q.answer>=1&&+q.answer<=q.choices.length)){alert("객관식은 보기 2개 이상, 정답은 보기 번호여야 합니다.");return}
+ const i=S.q.findIndex(x=>x.id===q.id);i>=0?S.q[i]=q:S.q.push(q);
+ save();$("bk-form").innerHTML="";refreshAll();
+}
+function delQ(id){if(confirm("삭제할까요?")){S.q=S.q.filter(x=>x.id!==id);save();refreshAll()}}
+function exportData(){
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:"application/json"}));
+ a.download="보건활동지_백업_"+new Date().toISOString().slice(0,10)+".json";a.click();
+}
+function importData(el){
+ const f=el.files[0];if(!f)return;
+ f.text().then(t=>{const d=JSON.parse(t);if(!d.q)throw 0;S=d;S.a=S.a||[];S.lessons=S.lessons||[];save();refreshAll();alert("불러왔습니다.")}).catch(()=>alert("올바른 백업 파일이 아닙니다."));
+ el.value="";
+}
+
+/* auto generation from terms */
+function genQ(){
+ const unit=$("gn-unit").value.trim(),diff=+$("gn-d").value;
+ const ts=[...document.querySelectorAll(".gn-t:checked")].map(x=>x.value);
+ const pairs=$("gn-in").value.split("\n").map(l=>l.split("|").map(s=>s.trim())).filter(p=>p.length>=2&&p[0]&&p[1]);
+ if(!unit||!pairs.length){alert("단원명과 '용어 | 설명'을 입력하세요.");return}
+ const out=[];
+ pairs.forEach(([term,desc],i)=>{
+  const others=shuffle(pairs.filter((_,j)=>j!==i).map(p=>p[0]));
+  if(ts.includes("short"))out.push({type:"short",text:`다음 설명에 해당하는 용어를 쓰시오.\n"${desc}"`,choices:[],answer:term});
+  if(ts.includes("mc")&&others.length>=3){
+   const opts=shuffle([term,...others.slice(0,3)]);
+   out.push({type:"mc",text:`다음 설명에 해당하는 것은?\n"${desc}"`,choices:opts,answer:String(opts.indexOf(term)+1)});
+  }
+  if(ts.includes("ox")){
+   const wrong=pairs.length>1&&Math.random()<.5;
+   if(wrong){const o=shuffle(pairs.filter((_,j)=>j!==i))[0];out.push({type:"ox",text:`'${term}'은(는) 다음 설명과 같다. "${o[1]}"`,choices:[],answer:"X",expl:`정답 설명: ${desc}`});}
+   else out.push({type:"ox",text:`'${term}'은(는) 다음 설명과 같다. "${desc}"`,choices:[],answer:"O"});
+  }
+ });
+ out.forEach(q=>S.q.push({id:uid(),unit,diff,expl:"",...q}));
+ save();refreshAll();
+ $("gn-out").textContent=`${out.length}문항을 '${unit}' 단원 문항은행에 추가했습니다. (문항은행 탭에서 확인·수정)`;
+}
+
+/* activities & lessons */
+function renderAct(){
+ const f=$("ac-f").value;
+ $("ac-list").innerHTML=S.a.filter(a=>!f||a.unit===f).map(a=>
+  `<div class="card"><b>${esc(a.name)}</b> <span class="muted">· ${esc(a.unit)} · ${a.time}분</span>
+  <div>${esc(a.desc)}</div><div class="muted">준비물: ${a.mat.map(esc).join(", ")}</div>
+  <button class="b" onclick="addToLesson('${a.id}')">차시에 담기</button>
+  <button class="b g" onclick="editAct('${a.id}')">수정</button><button class="b r" onclick="delAct('${a.id}')">삭제</button></div>`).join("")||"<p class='muted'>활동이 없습니다.</p>";
+}
+function editAct(id){
+ const a=S.a.find(x=>x.id===id)||{unit:$("ac-f").value||"",name:"",time:15,desc:"",mat:[]};
+ $("ac-form").innerHTML=`<div class="card"><input type="hidden" id="a-id" value="${id||""}">
+ <label>단원 <input id="a-unit" list="unitlist" value="${esc(a.unit)}"></label>
+ <label>활동명 <input id="a-name" value="${esc(a.name)}"></label>
+ <label>시간(분) <input id="a-time" type="number" value="${a.time}" style="width:60px"></label>
+ <textarea id="a-desc" rows="2" placeholder="활동 설명">${esc(a.desc)}</textarea>
+ <label>준비물(쉼표로 구분) <input id="a-mat" value="${esc(a.mat.join(", "))}" style="width:420px"></label><br>
+ <button class="b" onclick="saveAct()">저장</button><button class="b g" onclick="$('ac-form').innerHTML=''">취소</button></div>`;
+}
+function saveAct(){
+ const a={id:$("a-id").value||uid(),unit:$("a-unit").value.trim(),name:$("a-name").value.trim(),time:+$("a-time").value||0,desc:$("a-desc").value.trim(),
+  mat:$("a-mat").value.split(",").map(s=>s.trim()).filter(Boolean)};
+ if(!a.unit||!a.name){alert("단원과 활동명은 필수입니다.");return}
+ const i=S.a.findIndex(x=>x.id===a.id);i>=0?S.a[i]=a:S.a.push(a);
+ save();$("ac-form").innerHTML="";refreshAll();
+}
+function delAct(id){if(confirm("삭제할까요?")){S.a=S.a.filter(x=>x.id!==id);S.lessons.forEach(l=>l.acts=l.acts.filter(x=>x!==id));save();refreshAll()}}
+function addLesson(){
+ const n=$("ls-name").value.trim();if(!n){alert("차시 이름을 입력하세요.");return}
+ S.lessons.push({id:uid(),name:n,groups:+$("ls-g").value||1,acts:[],checked:{}});
+ $("ls-name").value="";save();renderLessons();
+}
+function addToLesson(aid){
+ if(!S.lessons.length){alert("먼저 아래에서 차시를 만드세요.");return}
+ const names=S.lessons.map((l,i)=>`${i+1}. ${l.name}`).join("\n");
+ const k=S.lessons.length===1?1:+prompt("어느 차시에 담을까요? 번호 입력\n"+names);
+ const l=S.lessons[k-1];if(!l)return;
+ if(!l.acts.includes(aid))l.acts.push(aid);
+ save();renderLessons();
+}
+function renderLessons(){
+ $("ls-list").innerHTML=S.lessons.map(l=>{
+  const acts=l.acts.map(id=>S.a.find(a=>a.id===id)).filter(Boolean);
+  const mats=[...new Set(acts.flatMap(a=>a.mat))];
+  const total=acts.reduce((s,a)=>s+a.time,0);
+  return `<div class="card"><b>${esc(l.name)}</b> <span class="muted">· ${l.groups}모둠 · 활동 ${total}분</span>
+  <button class="b r" style="float:right" onclick="delLesson('${l.id}')">차시 삭제</button>
+  <div>${acts.map(a=>`• ${esc(a.name)} (${a.time}분) <a href="#" onclick="rmAct('${l.id}','${a.id}');return false">[빼기]</a>`).join("<br>")||"<span class='muted'>담긴 활동 없음</span>"}</div>
+  <div style="margin-top:6px"><b>준비물 체크리스트</b> <span class="muted">(모둠 수만큼 준비)</span><br>
+  ${mats.map(m=>`<label><input type="checkbox" ${l.checked[m]?"checked":""} onchange="chk('${l.id}',this.dataset.m,this.checked)" data-m="${esc(m)}"> ${esc(m)} ×${l.groups}</label>`).join("")||"-"}</div></div>`;
+ }).join("");
+}
+function chk(lid,m,v){S.lessons.find(l=>l.id===lid).checked[m]=v;save()}
+function rmAct(lid,aid){const l=S.lessons.find(x=>x.id===lid);l.acts=l.acts.filter(x=>x!==aid);save();renderLessons()}
+function delLesson(id){if(confirm("차시를 삭제할까요?")){S.lessons=S.lessons.filter(l=>l.id!==id);save();renderLessons()}}
+
+refreshAll();show("make");
+</script>
+</body>
+</html>
