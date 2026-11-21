@@ -43,7 +43,7 @@ function element(tag, text, className) {
 document.getElementById("quiz-form").addEventListener("change", () => {
   document.getElementById("result").replaceChildren(
     element("h2", "생성 결과"),
-    element("p", "조건이 변경되었습니다. 퀴즈 생성 버튼을 눌러 주세요.")
+    element("p", "조건이 변경되었습니다. 문항 만들기 버튼을 눌러 주세요.")
   );
 });
 
