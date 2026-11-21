@@ -5,6 +5,10 @@ body {
   background: #f7f7f9;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 header {
   background: #2f5d8a;
   color: #fff;
@@ -32,4 +36,52 @@ section {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 16px;
+  margin-bottom: 16px;
+}
+
+form {
+  display: grid;
+  gap: 8px;
+}
+
+label {
+  font-weight: bold;
+}
+
+select, button {
+  font: inherit;
+  padding: 10px;
+}
+
+button {
+  background: #2f5d8a;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+button:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 3px solid #e3a023;
+  outline-offset: 2px;
+}
+
+.card {
+  border: 1px solid #cbd6e2;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.card h3 {
+  margin-top: 0;
+}
+
+.card li {
+  margin: 6px 0;
+}
+
+.error {
+  color: #a21c1c;
 }

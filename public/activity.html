@@ -15,10 +15,29 @@
     </nav>
   </header>
   <main>
-    <!-- 입력 폼과 결과 영역은 실습에서 추가합니다 -->
-    <section id="result">
-      <p>추천 결과가 여기에 표시됩니다.</p>
+    <section>
+      <h2>중3 보건 모둠 활동 추천</h2>
+      <p>인터넷 없이 예시 활동 은행에서 선택합니다. 현재 감염병 예방 단원의 아래 차시 목표만 지원합니다. 활동 전 학급 상황과 안전을 확인해 주세요.</p>
+      <form id="activity-form">
+        <label for="unit">단원명</label>
+        <select id="unit" required>
+          <option value="">단원을 선택하세요</option>
+          <option value="감염병 예방">감염병 예방</option>
+        </select>
+        <label for="goal">차시 목표</label>
+        <select id="goal" required>
+          <option value="">차시 목표를 선택하세요</option>
+          <option value="손 씻기">올바른 손 씻기의 중요성과 방법을 설명한다.</option>
+          <option value="전파 경로">감염병의 전파 경로와 예방 방법을 설명한다.</option>
+        </select>
+        <button type="submit">활동 추천</button>
+      </form>
+    </section>
+    <section id="result" aria-live="polite">
+      <h2>추천 결과</h2>
+      <p>단원과 차시 목표를 선택하면 모둠 활동 3개가 표시됩니다. 다시 추천하면 같은 활동의 순서가 바뀔 수 있습니다.</p>
     </section>
   </main>
+  <script src="activity.js" defer></script>
 </body>
 </html>

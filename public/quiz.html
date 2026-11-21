@@ -15,10 +15,35 @@
     </nav>
   </header>
   <main>
-    <!-- 입력 폼과 결과 영역은 실습에서 추가합니다 -->
-    <section id="result">
-      <p>결과가 여기에 표시됩니다.</p>
+    <section>
+      <h2>중3 퀴즈 만들기</h2>
+      <p>인터넷 없이 예시 문항 은행에서 선택합니다. 현재 보건의 감염병 예방 단원만 지원합니다. 사용 전 교사가 내용을 확인해 주세요.</p>
+      <form id="quiz-form">
+        <label for="subject">교과</label>
+        <select id="subject" required>
+          <option value="">교과를 선택하세요</option>
+          <option value="보건">보건</option>
+        </select>
+        <label for="unit">단원</label>
+        <select id="unit" required>
+          <option value="">단원을 선택하세요</option>
+          <option value="감염병 예방">감염병 예방</option>
+        </select>
+        <label for="difficulty">난이도</label>
+        <select id="difficulty" required>
+          <option value="">난이도를 선택하세요</option>
+          <option value="쉬움">쉬움</option>
+          <option value="보통">보통</option>
+          <option value="어려움">어려움</option>
+        </select>
+        <button type="submit">퀴즈 생성</button>
+      </form>
+    </section>
+    <section id="result" aria-live="polite">
+      <h2>생성 결과</h2>
+      <p>조건을 선택하면 문항 5개가 표시됩니다. 다시 생성하면 같은 문항의 순서가 바뀔 수 있습니다.</p>
     </section>
   </main>
+  <script src="quiz.js" defer></script>
 </body>
 </html>
